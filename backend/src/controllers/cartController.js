@@ -1,13 +1,10 @@
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const pool = require('../utils/db');
+const AppError = require('../utils/AppError');
 
 /* =======================
    GET CART ITEMS
 ======================= */
-exports.getCart = async (req, res) => {
+exports.getCart = async (req, res, next) => {
   try {
     const userId = req.userId;
 
@@ -21,58 +18,55 @@ exports.getCart = async (req, res) => {
 
     res.json({
       success: true,
-      data: result.rows
+      data: result.rows,
+      error: null
     });
   } catch (err) {
-    console.error('GET CART ERROR:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get cart'
-    });
+    next(err);
   }
 };
 
 /* =======================
-   ADD TO CART (FIXED)
+   ADD TO CART (VALIDATED)
 ======================= */
-exports.addToCart = async (req, res) => {
+exports.addToCart = async (req, res, next) => {
   try {
     const userId = req.userId;
     let { productId, quantity } = req.body;
 
-    // ✅ Validate input
-    if (!productId || !quantity || quantity <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid product or quantity'
-      });
+    // 1️⃣ Validation
+    if (!productId) {
+      throw new AppError('Product ID is required', 400);
     }
 
-    productId = Number(productId);
-    quantity = Number(quantity);
+    quantity = quantity ? Number(quantity) : 1;
 
-    // ✅ Check product exists
-    const productCheck = await pool.query(
+    if (quantity <= 0) {
+      throw new AppError('Quantity must be greater than zero', 400);
+    }
+
+    // 2️⃣ Check product exists
+    const product = await pool.query(
       'SELECT id FROM products WHERE id = $1',
       [productId]
     );
 
-    if (productCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
+    if (product.rows.length === 0) {
+      throw new AppError('Product not found', 404);
     }
 
-    // ✅ Check if already in cart
+    // 3️⃣ Handle duplicates
     const existing = await pool.query(
-      'SELECT id, quantity FROM cart_items WHERE user_id=$1 AND product_id=$2',
+      `SELECT id FROM cart_items
+       WHERE user_id = $1 AND product_id = $2`,
       [userId, productId]
     );
 
     if (existing.rows.length > 0) {
       await pool.query(
-        'UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2',
+        `UPDATE cart_items
+         SET quantity = quantity + $1
+         WHERE id = $2`,
         [quantity, existing.rows[0].id]
       );
     } else {
@@ -83,115 +77,93 @@ exports.addToCart = async (req, res) => {
       );
     }
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: 'Product added to cart'
+      data: { productId, quantity },
+      error: null
     });
 
   } catch (err) {
-    console.error('ADD TO CART ERROR:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Add to cart failed'
-    });
+    next(err);
   }
 };
 
 /* =======================
    UPDATE QUANTITY
 ======================= */
-exports.updateQuantity = async (req, res) => {
+exports.updateQuantity = async (req, res, next) => {
   try {
     const { itemId } = req.params;
     const { quantity } = req.body;
 
     if (!quantity || quantity <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid quantity'
-      });
+      throw new AppError('Invalid quantity', 400);
     }
 
     await pool.query(
-      'UPDATE cart_items SET quantity=$1 WHERE id=$2',
+      'UPDATE cart_items SET quantity = $1 WHERE id = $2',
       [quantity, itemId]
     );
 
     res.json({
       success: true,
-      message: 'Quantity updated'
+      data: { itemId, quantity },
+      error: null
     });
   } catch (err) {
-    console.error('UPDATE CART ERROR:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Update failed'
-    });
+    next(err);
   }
 };
 
 /* =======================
    REMOVE ITEM
 ======================= */
-exports.removeItem = async (req, res) => {
+exports.removeItem = async (req, res, next) => {
   try {
     const { itemId } = req.params;
 
     await pool.query(
-      'DELETE FROM cart_items WHERE id=$1',
+      'DELETE FROM cart_items WHERE id = $1',
       [itemId]
     );
 
     res.json({
       success: true,
-      message: 'Item removed'
+      data: { itemId },
+      error: null
     });
   } catch (err) {
-    console.error('REMOVE CART ERROR:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Remove failed'
-    });
+    next(err);
   }
 };
 
 /* =======================
    APPLY PROMO CODE
 ======================= */
-exports.applyPromo = async (req, res) => {
+exports.applyPromo = async (req, res, next) => {
   try {
     const { code } = req.body;
 
     if (!code) {
-      return res.status(400).json({
-        success: false,
-        message: 'Promo code required'
-      });
+      throw new AppError('Promo code is required', 400);
     }
 
     const promo = await pool.query(
-      'SELECT * FROM promo_codes WHERE code=$1',
+      'SELECT code, discount, type FROM promo_codes WHERE code = $1',
       [code]
     );
 
     if (promo.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid promo code'
-      });
+      throw new AppError('Invalid promo code', 400);
     }
 
     res.json({
       success: true,
-      discount: promo.rows[0].discount,
-      type: promo.rows[0].type
+      data: promo.rows[0],
+      error: null
     });
 
   } catch (err) {
-    console.error('PROMO ERROR:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Promo apply failed'
-    });
+    next(err);
   }
 };
