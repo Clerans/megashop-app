@@ -13,6 +13,9 @@ const cartRoutes = require('./src/routes/cartRoutes');
 const ordersRoutes = require('./src/routes/ordersRoutes');
 const wishlistRoutes = require('./src/routes/wishlistRoutes');
 
+// error handler
+const errorHandler = require('./src/middleware/errorHandler');
+
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -29,13 +32,29 @@ app.get('/', (req, res) => {
   res.send('MegaShop backend with DB connected');
 });
 
-// api routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+
+/* =========================
+   404 HANDLER (MISSING ROUTES)
+========================= */
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    data: null,
+    error: 'API endpoint not found',
+  });
+});
+
+/* =========================
+   GLOBAL ERROR HANDLER
+========================= */
+app.use(errorHandler);
 
 // start server
 const PORT = process.env.PORT || 3001;
