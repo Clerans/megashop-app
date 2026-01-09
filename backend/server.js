@@ -11,6 +11,7 @@ const categoryRoutes = require('./src/routes/categoryRoutes');
 const productRoutes = require('./src/routes/productRoutes');
 const cartRoutes = require('./src/routes/cartRoutes');
 const ordersRoutes = require('./src/routes/ordersRoutes');
+const wishlistRoutes = require('./src/routes/wishlistRoutes');
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -34,6 +35,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // start server
 const PORT = process.env.PORT || 3001;
