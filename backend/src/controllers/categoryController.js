@@ -1,17 +1,25 @@
 const pool = require('../utils/db');
+const { success } = require('../utils/response');
 
-exports.getAllCategories = async (req, res) => {
+/* GET ALL CATEGORIES */
+exports.getAllCategories = async (req, res, next) => {
   try {
     const result = await pool.query('SELECT * FROM categories');
-    res.json({
-      success: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch categories',
-    });
+    success(res, 200, result.rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/* GET PRODUCTS BY CATEGORY ID */
+exports.getProductsByCategoryId = async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM products WHERE category_id = $1',
+      [req.params.id]
+    );
+    success(res, 200, result.rows);
+  } catch (err) {
+    next(err);
   }
 };

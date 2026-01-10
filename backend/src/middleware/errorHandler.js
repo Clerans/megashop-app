@@ -11,6 +11,6 @@ module.exports = (err, req, res, next) => {
     data: null,
     error: err.isOperational
       ? err.message
-      : 'Internal server error'
+      : 'Internal server error',
   });
 };

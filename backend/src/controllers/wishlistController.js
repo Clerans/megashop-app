@@ -1,50 +1,72 @@
 const pool = require('../utils/db');
+const { success } = require('../utils/response');
 
 /**
  * GET /api/wishlist
  */
-exports.getWishlist = async (req, res) => {
-  const userId = 1; // demo user (replace with JWT later)
+exports.getWishlist = async (req, res, next) => {
+  try {
+    const userId = req.userId;  // authenticated user (JWT)
 
-  const result = await pool.query(
-    `SELECT w.id, p.id AS product_id, p.name, p.price, p.images
-     FROM wishlist_items w
-     JOIN products p ON p.id = w.product_id
-     WHERE w.user_id = $1`,
-    [userId]
-  );
+    const result = await pool.query(
+      `SELECT 
+        w.id,
+        p.id AS product_id,
+        p.name,
+        p.price,
+        p.images
+       FROM wishlist_items w
+       JOIN products p ON p.id = w.product_id
+       WHERE w.user_id = $1`,
+      [userId]
+    );
 
-  res.json({ success: true, data: result.rows });
+    success(res, 200, result.rows);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
  * POST /api/wishlist
  * body: { product_id }
  */
-exports.addToWishlist = async (req, res) => {
-  const userId = 1;
-  const { product_id } = req.body;
+exports.addToWishlist = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { product_id } = req.body;
 
-  await pool.query(
-    `INSERT INTO wishlist_items (user_id, product_id)
-     VALUES ($1, $2)
-     ON CONFLICT DO NOTHING`,
-    [userId, product_id]
-  );
+    const result = await pool.query(
+      `INSERT INTO wishlist_items (user_id, product_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING
+       RETURNING *`,
+      [userId, product_id]
+    );
 
-  res.json({ success: true, message: 'Added to wishlist' });
+    success(res, 200, result.rows[0] || null);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
  * DELETE /api/wishlist/:itemId
  */
-exports.removeFromWishlist = async (req, res) => {
-  const { itemId } = req.params;
+exports.removeFromWishlist = async (req, res, next) => {
+  try {
+    const { itemId } = req.params;
+    const userId = req.userId;
 
-  await pool.query(
-    'DELETE FROM wishlist_items WHERE id = $1',
-    [itemId]
-  );
+    const result = await pool.query(
+      `DELETE FROM wishlist_items
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [itemId, userId]
+    );
 
-  res.json({ success: true, message: 'Removed from wishlist' });
+    success(res, 200, result.rows[0] || null);
+  } catch (err) {
+    next(err);
+  }
 };

@@ -1,11 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
+const cors = require('cors');
 
-const app = express();
-app.use(express.json());
+const pool = require('./src/utils/db'); // ✅ FIX
 
-// routes
 const authRoutes = require('./src/routes/authRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const productRoutes = require('./src/routes/productRoutes');
@@ -13,24 +11,12 @@ const cartRoutes = require('./src/routes/cartRoutes');
 const ordersRoutes = require('./src/routes/ordersRoutes');
 const wishlistRoutes = require('./src/routes/wishlistRoutes');
 
-// error handler
 const errorHandler = require('./src/middleware/errorHandler');
 
-// PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const app = express();
 
-// test database connection (only once)
-pool
-  .connect()
-  .then(() => console.log('Connected to PostgreSQL'))
-  .catch((err) => console.error('DB connection error', err));
-
-// test route
-app.get('/', (req, res) => {
-  res.send('MegaShop backend with DB connected');
-});
+app.use(cors());
+app.use(express.json());
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -41,7 +27,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 
 /* =========================
-   404 HANDLER (MISSING ROUTES)
+   404 HANDLER
 ========================= */
 app.use((req, res) => {
   res.status(404).json({
@@ -56,8 +42,15 @@ app.use((req, res) => {
 ========================= */
 app.use(errorHandler);
 
-// start server
+/* =========================
+   TEST DB CONNECTION (ONCE)
+========================= */
+pool
+  .query('SELECT 1')
+  .then(() => console.log('✅ Connected to PostgreSQL'))
+  .catch((err) => console.error('❌ DB connection error', err));
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
