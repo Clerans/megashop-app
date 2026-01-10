@@ -6,7 +6,11 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', authMiddleware, (req, res) => {
-  res.json({ userId: req.userId });
+  res.json({
+    success: true,
+    data: { userId: req.userId },
+    error: null
+  });
 });
 
 module.exports = router;
