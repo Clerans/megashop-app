@@ -1,5 +1,6 @@
 const pool = require('../utils/db');
 const AppError = require('../utils/AppError');
+const { success } = require('../utils/response');
 
 /* =======================
    GET CART ITEMS
@@ -16,11 +17,7 @@ exports.getCart = async (req, res, next) => {
       [userId]
     );
 
-    res.json({
-      success: true,
-      data: result.rows,
-      error: null
-    });
+    success(res, 200, result.rows);
   } catch (err) {
     next(err);
   }
@@ -77,11 +74,7 @@ exports.addToCart = async (req, res, next) => {
       );
     }
 
-    res.status(201).json({
-      success: true,
-      data: { productId, quantity },
-      error: null
-    });
+    success(res, 201, { productId, quantity });
 
   } catch (err) {
     next(err);
@@ -101,15 +94,13 @@ exports.updateQuantity = async (req, res, next) => {
     }
 
     await pool.query(
-      'UPDATE cart_items SET quantity = $1 WHERE id = $2',
-      [quantity, itemId]
+      `UPDATE cart_items
+       SET quantity = $1
+       WHERE id = $2 AND user_id = $3`,
+      [quantity, itemId, req.userId]
     );
 
-    res.json({
-      success: true,
-      data: { itemId, quantity },
-      error: null
-    });
+    success(res, 200, { itemId, quantity });
   } catch (err) {
     next(err);
   }
@@ -123,15 +114,11 @@ exports.removeItem = async (req, res, next) => {
     const { itemId } = req.params;
 
     await pool.query(
-      'DELETE FROM cart_items WHERE id = $1',
-      [itemId]
+      'DELETE FROM cart_items WHERE id = $1 AND user_id = $2',
+      [itemId, req.userId]
     );
 
-    res.json({
-      success: true,
-      data: { itemId },
-      error: null
-    });
+    success(res, 200, { itemId });
   } catch (err) {
     next(err);
   }
@@ -142,27 +129,37 @@ exports.removeItem = async (req, res, next) => {
 ======================= */
 exports.applyPromo = async (req, res, next) => {
   try {
-    const { code } = req.body;
+    const { code, subtotal } = req.body;
 
-    if (!code) {
-      throw new AppError('Promo code is required', 400);
-    }
-
-    const promo = await pool.query(
-      'SELECT code, discount, type FROM promo_codes WHERE code = $1',
+    const result = await pool.query(
+      `SELECT discount_type, discount_value, min_purchase, valid_until
+       FROM promo_codes
+       WHERE code = $1`,
       [code]
     );
 
-    if (promo.rows.length === 0) {
+    if (result.rows.length === 0) {
       throw new AppError('Invalid promo code', 400);
     }
 
-    res.json({
-      success: true,
-      data: promo.rows[0],
-      error: null
-    });
+    const promo = result.rows[0];
 
+    if (promo.valid_until < new Date()) {
+      throw new AppError('Promo code expired', 400);
+    }
+
+    if (subtotal < promo.min_purchase) {
+      throw new AppError('Minimum purchase not met', 400);
+    }
+
+    let discount = 0;
+    if (promo.discount_type === 'percentage') {
+      discount = (subtotal * promo.discount_value) / 100;
+    } else {
+      discount = promo.discount_value;
+    }
+
+    success(res, 200, { discount });
   } catch (err) {
     next(err);
   }
