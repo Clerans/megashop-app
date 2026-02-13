@@ -4,7 +4,7 @@ const { success } = require('../utils/response');
 /* GET ALL PRODUCTS (pagination + filtering + sorting) */
 exports.getAllProducts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, sort, minPrice, maxPrice } = req.query;
+    const { page = 1, limit = 100, sort, minPrice, maxPrice } = req.query;
 
     let query = 'SELECT * FROM products WHERE 1=1';
     const values = [];

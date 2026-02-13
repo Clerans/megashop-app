@@ -4,7 +4,14 @@ const { success } = require('../utils/response');
 /* GET ALL CATEGORIES */
 exports.getAllCategories = async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT * FROM categories');
+    const query = `
+      SELECT c.*, COUNT(p.id)::int as product_count 
+      FROM categories c 
+      LEFT JOIN products p ON c.id = p.category_id 
+      GROUP BY c.id
+      ORDER BY c.id
+    `;
+    const result = await pool.query(query);
     success(res, 200, result.rows);
   } catch (err) {
     next(err);
