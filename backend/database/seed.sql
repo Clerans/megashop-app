@@ -467,4 +467,11 @@ ARRAY['N/A'],ARRAY['1kg'],'Free shipping • 2-3 days'),
 (8,'Green Tea Bags 100 pcs','Antioxidant rich green tea.','groceries',5.99,9.99,4.5,6100,38000,'TeaHouse',
 ARRAY['best-seller'],
 ARRAY['https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=400'],
-ARRAY['N/A'],ARRAY['100 pcs'],'Free shipping • 2-4 days');
+ARRAY['N/A'],ARRAY['100 pcs'],'Free shipping • 2-4 days'),
+
+(8,'Astra Margarine 250g','Creamy and smooth margarine perfect for baking and cooking.','groceries',2.49,3.49,4.6,4800,29000,'Astra',
+ARRAY['best-seller','popular'],
+ARRAY['https://supersavings.lk/wp-content/uploads/2021/01/astra-fat-spread-250g.png'],
+ARRAY['N/A'],
+ARRAY['250g'],
+'Free shipping • 2-4 days');
