@@ -1,17 +1,37 @@
 import React from 'react';
-import { AppRegistry } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold
+} from '@expo-google-fonts/poppins';
+import { Provider } from 'react-redux';
+import { store } from './src/redux/store';
+import Toast from 'react-native-toast-message';
 import AppNavigator from './src/navigation/AppNavigator';
 
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Poppins-Regular': Poppins_400Regular,
+    'Poppins-Medium': Poppins_500Medium,
+    'Poppins-SemiBold': Poppins_600SemiBold,
+    'Poppins-Bold': Poppins_700Bold,
+  });
 
-function App() {
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
+    <Provider store={store}>
+      <SafeAreaProvider>
+        <AppNavigator />
+        <StatusBar style="auto" />
+        <Toast />
+      </SafeAreaProvider>
+    </Provider>
   );
 }
-
-AppRegistry.registerComponent('main', () => App);
-
-export default App;
